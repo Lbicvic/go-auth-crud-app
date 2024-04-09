@@ -57,11 +57,28 @@ func (contactController *ContactController) GetContacts(context *gin.Context) {
 	context.JSON(http.StatusOK, contacts)
 }
 func (contactController *ContactController) UpdateContact(context *gin.Context) {
-
+	_id := context.Param("id")
+	contact := models.Contact{}
+	if err := context.ShouldBindJSON(&contact); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+	updatedContact, err := contactController.ContactRepository.UpdateContact(&contact, &_id)
+	if err != nil {
+		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+		return
+	}
+	context.JSON(http.StatusOK, updatedContact)
 }
 
 func (contactController *ContactController) DeleteContact(context *gin.Context) {
-
+	_id := context.Param("id")
+	err := contactController.ContactRepository.DeleteContact(&_id)
+	if err != nil {
+		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+		return
+	}
+	context.JSON(http.StatusOK, gin.H{"message": "Contact successfully deleted"})
 }
 
 func (contactController *ContactController) ContactRoutes(apiRouter *gin.RouterGroup) {

@@ -49,7 +49,7 @@ func (contactRepository *ContactRepository) GetContact(id *string) (*models.Cont
 func (contactRepository *ContactRepository) GetContacts(user_oib *string) ([]*models.Contact, error) {
 	var contacts []*models.Contact
 	filter := bson.D{{Key: "user_oib", Value: user_oib}}
-	opts := options.Find().SetSort(bson.D{{"firstName", 1}})
+	opts := options.Find().SetSort(bson.D{bson.E{Key: "firstName", Value: 1}})
 	cursor, err := contactRepository.contacts.Find(contactRepository.context, filter, opts)
 	if err := cursor.All(contactRepository.context, &contacts); err != nil {
 		log.Fatal(err)
@@ -57,10 +57,31 @@ func (contactRepository *ContactRepository) GetContacts(user_oib *string) ([]*mo
 	return contacts, err
 }
 
-func (contactRepository *ContactRepository) UpdateContact(contact *models.Contact) (*models.Contact, error) {
-	return nil, nil
+func (contactRepository *ContactRepository) UpdateContact(contact *models.Contact, id *string) (*models.Contact, error) {
+	var updatedContact *models.Contact
+	contactId, err := primitive.ObjectIDFromHex(*id)
+	if err != nil {
+		return contact, err
+	}
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	filter := bson.D{bson.E{Key: "_id", Value: contactId}}
+	update := bson.D{bson.E{Key: "$set", Value: contact}}
+	err = contactRepository.contacts.FindOneAndUpdate(contactRepository.context, filter, update, opts).Decode(&updatedContact)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return updatedContact, err
 }
 
 func (contactRepository *ContactRepository) DeleteContact(id *string) error {
+	contactId, err := primitive.ObjectIDFromHex(*id)
+	if err != nil {
+		return err
+	}
+	filter := bson.D{bson.E{Key: "_id", Value: contactId}}
+	result, err := contactRepository.contacts.DeleteOne(contactRepository.context, filter)
+	if result.DeletedCount != 1 {
+		return err
+	}
 	return nil
 }
