@@ -13,10 +13,12 @@ import (
 )
 
 var (
-	ctx            context.Context
-	userRepository repositories.UserRepository
-	userController controllers.UserController
-	err            error
+	ctx               context.Context
+	userRepository    repositories.UserRepository
+	userController    controllers.UserController
+	contactRepository repositories.ContactRepository
+	contactController controllers.ContactController
+	err               error
 )
 
 func init() {
@@ -24,9 +26,11 @@ func init() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	users, ctx := db.Connect()
+	users, contacts, ctx := db.Connect()
 	userRepository = *repositories.ConstructUserRepository(users, ctx)
 	userController = controllers.ConstructUserController(userRepository)
+	contactRepository = *repositories.ConstructContactRepository(contacts, ctx)
+	contactController = controllers.ConstructContactController(contactRepository)
 }
 func main() {
 	defer func() {
@@ -41,5 +45,6 @@ func main() {
 	router := gin.Default()
 	apiPath := router.Group("/api")
 	userController.UserRoutes(apiPath)
+	contactController.ContactRoutes(apiPath)
 	router.Run(":" + port)
 }
