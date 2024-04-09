@@ -5,6 +5,7 @@ import (
 
 	"github.com/Lbicvic/go-auth-crud-app/models"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -33,8 +34,12 @@ func (userRepository *UserRepository) CreateUser(user *models.User) error {
 
 func (userRepository *UserRepository) GetUser(id *string) (*models.User, error) {
 	var user *models.User
-	filter := bson.D{bson.E{Key: "_id", Value: id}}
-	err := userRepository.users.FindOne(userRepository.context, filter).Decode(&user)
+	userId, err := primitive.ObjectIDFromHex(*id)
+	if err != nil {
+		return user, err
+	}
+	filter := bson.D{bson.E{Key: "_id", Value: userId}}
+	err = userRepository.users.FindOne(userRepository.context, filter).Decode(&user)
 	return user, err
 }
 
