@@ -14,7 +14,7 @@ type UserController struct {
 	UserRepository repositories.UserRepository
 }
 
-func constructUserController(userRepository repositories.UserRepository) UserController {
+func ConstructUserController(userRepository repositories.UserRepository) UserController {
 	return UserController{
 		UserRepository: userRepository,
 	}

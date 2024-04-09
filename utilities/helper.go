@@ -13,7 +13,7 @@ func CreateToken(user_oib string) (string, error) {
 		"expire": time.Now().Add(time.Hour * 24).Unix(),
 	})
 
-	tokenString, err := token.SignedString(os.Getenv("TOKEN_SECRET"))
+	tokenString, err := token.SignedString([]byte(os.Getenv("TOKEN_SECRET")))
 
 	return tokenString, err
 }
