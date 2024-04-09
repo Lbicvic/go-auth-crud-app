@@ -46,7 +46,7 @@ func (userController *UserController) RegisterUser(context *gin.Context) {
 
 func (userController *UserController) GetUser(context *gin.Context) {
 	_id := context.Param("id")
-	user, err := userController.UserRepository.GetUser(&_id)
+	user, err := userController.UserRepository.GetUserById(&_id)
 	if err != nil {
 		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
 		return
@@ -55,7 +55,30 @@ func (userController *UserController) GetUser(context *gin.Context) {
 }
 
 func (userController *UserController) LoginUser(context *gin.Context) {
-
+	var reqBody struct {
+		Email    string
+		Password string
+	}
+	if err := context.ShouldBindJSON(&reqBody); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+	user, err := userController.UserRepository.GetUserByEmail(&reqBody.Email)
+	if err != nil {
+		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+		return
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(reqBody.Password)); err != nil {
+		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+		return
+	}
+	tokenString, err := utilities.CreateToken(user.Oib)
+	if err != nil {
+		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+		return
+	}
+	user.Password = ""
+	context.JSON(http.StatusOK, gin.H{"user": user, "token": tokenString})
 }
 
 func (userController *UserController) UpdateUser(context *gin.Context) {

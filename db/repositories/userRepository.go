@@ -11,7 +11,8 @@ import (
 
 type IUserRepository interface {
 	CreateUser(*models.User) error
-	GetUser(*string) (*models.User, error)
+	GetUserById(*string) (*models.User, error)
+	GetUserByEmail(*string) (*models.User, error)
 	UpdateUser(*models.User) error
 	DeleteUser(*string) error
 }
@@ -32,7 +33,7 @@ func (userRepository *UserRepository) CreateUser(user *models.User) error {
 	return err
 }
 
-func (userRepository *UserRepository) GetUser(id *string) (*models.User, error) {
+func (userRepository *UserRepository) GetUserById(id *string) (*models.User, error) {
 	var user *models.User
 	userId, err := primitive.ObjectIDFromHex(*id)
 	if err != nil {
@@ -40,6 +41,13 @@ func (userRepository *UserRepository) GetUser(id *string) (*models.User, error) 
 	}
 	filter := bson.D{bson.E{Key: "_id", Value: userId}}
 	err = userRepository.users.FindOne(userRepository.context, filter).Decode(&user)
+	return user, err
+}
+
+func (userRepository *UserRepository) GetUserByEmail(email *string) (*models.User, error) {
+	var user *models.User
+	filter := bson.D{bson.E{Key: "email", Value: email}}
+	err := userRepository.users.FindOne(userRepository.context, filter).Decode(&user)
 	return user, err
 }
 
