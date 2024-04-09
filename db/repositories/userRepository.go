@@ -56,5 +56,14 @@ func (userRepository *UserRepository) UpdateUser(user *models.User) (*models.Use
 }
 
 func (userRepository *UserRepository) DeleteUser(id *string) error {
+	userId, err := primitive.ObjectIDFromHex(*id)
+	if err != nil {
+		return err
+	}
+	filter := bson.D{bson.E{Key: "_id", Value: userId}}
+	result, err := userRepository.users.DeleteOne(userRepository.context, filter)
+	if result.DeletedCount != 1 {
+		return err
+	}
 	return nil
 }

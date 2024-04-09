@@ -86,7 +86,13 @@ func (userController *UserController) UpdateUser(context *gin.Context) {
 }
 
 func (userController *UserController) DeleteUser(context *gin.Context) {
-
+	_id := context.Param("id")
+	err := userController.UserRepository.DeleteUser(&_id)
+	if err != nil {
+		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+		return
+	}
+	context.JSON(http.StatusOK, gin.H{"message": "User successfully deleted"})
 }
 
 func (userController *UserController) UserRoutes(apiRouter *gin.RouterGroup) {
@@ -96,6 +102,6 @@ func (userController *UserController) UserRoutes(apiRouter *gin.RouterGroup) {
 		userRoutes.POST("/login", userController.LoginUser)
 		userRoutes.GET("/:id", userController.GetUser)
 		userRoutes.PATCH("/:id", userController.UpdateUser)
-		userRoutes.DELETE("/login", userController.DeleteUser)
+		userRoutes.DELETE("/:id", userController.DeleteUser)
 	}
 }
