@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/Lbicvic/go-auth-crud-app/models"
+	"github.com/jinzhu/copier"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -15,7 +16,7 @@ type IContactRepository interface {
 	CreateContact(*models.Contact) error
 	GetContacts(*string) ([]*models.Contact, error)
 	GetContact(*string) (*models.Contact, error)
-	UpdateContact(*models.Contact) error
+	UpdateContact(*models.Contact, *string) error
 	DeleteContact(*string) error
 }
 type ContactRepository struct {
@@ -63,9 +64,16 @@ func (contactRepository *ContactRepository) UpdateContact(contact *models.Contac
 	if err != nil {
 		return contact, err
 	}
+	currentContact, err := contactRepository.GetContact(id)
+	if err != nil {
+		return nil, err
+	}
+	if err := copier.CopyWithOption(currentContact, contact, copier.Option{IgnoreEmpty: true}); err != nil {
+		log.Fatal(err)
+	}
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
 	filter := bson.D{bson.E{Key: "_id", Value: contactId}}
-	update := bson.D{bson.E{Key: "$set", Value: contact}}
+	update := bson.D{bson.E{Key: "$set", Value: currentContact}}
 	err = contactRepository.contacts.FindOneAndUpdate(contactRepository.context, filter, update, opts).Decode(&updatedContact)
 	if err != nil {
 		log.Fatal(err)

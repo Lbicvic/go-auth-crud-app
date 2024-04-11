@@ -51,7 +51,8 @@ func (userController *UserController) GetUser(context *gin.Context) {
 		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
 		return
 	}
-	context.JSON(http.StatusOK, user)
+	responseUser := utilities.GetResponseUserData(user)
+	context.JSON(http.StatusOK, responseUser)
 }
 
 func (userController *UserController) LoginUser(context *gin.Context) {
@@ -77,12 +78,24 @@ func (userController *UserController) LoginUser(context *gin.Context) {
 		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
 		return
 	}
-	user.Password = ""
-	context.JSON(http.StatusOK, gin.H{"user": user, "token": tokenString})
+	responseUser := utilities.GetResponseUserData(user)
+	context.JSON(http.StatusOK, gin.H{"user": responseUser, "token": tokenString})
 }
 
 func (userController *UserController) UpdateUser(context *gin.Context) {
-
+	_id := context.Param("id")
+	user := models.User{}
+	if err := context.ShouldBindJSON(&user); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+	updatedUser, err := userController.UserRepository.UpdateUser(&user, &_id)
+	if err != nil {
+		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+		return
+	}
+	responseUser := utilities.GetResponseUserData(updatedUser)
+	context.JSON(http.StatusOK, responseUser)
 }
 
 func (userController *UserController) DeleteUser(context *gin.Context) {
