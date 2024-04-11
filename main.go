@@ -5,20 +5,15 @@ import (
 	"log"
 	"os"
 
-	"github.com/Lbicvic/go-auth-crud-app/controllers"
 	"github.com/Lbicvic/go-auth-crud-app/db"
-	"github.com/Lbicvic/go-auth-crud-app/db/repositories"
+	"github.com/Lbicvic/go-auth-crud-app/routes"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
 
 var (
-	ctx               context.Context
-	userRepository    repositories.UserRepository
-	userController    controllers.UserController
-	contactRepository repositories.ContactRepository
-	contactController controllers.ContactController
-	err               error
+	ctx context.Context
+	err error
 )
 
 func init() {
@@ -26,11 +21,7 @@ func init() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	users, contacts, ctx := db.Connect()
-	userRepository = *repositories.ConstructUserRepository(users, ctx)
-	userController = controllers.ConstructUserController(userRepository)
-	contactRepository = *repositories.ConstructContactRepository(contacts, ctx)
-	contactController = controllers.ConstructContactController(contactRepository)
+	db.Initialize()
 }
 func main() {
 	defer func() {
@@ -44,7 +35,8 @@ func main() {
 	}
 	router := gin.Default()
 	apiPath := router.Group("/api")
-	userController.UserRoutes(apiPath)
-	contactController.ContactRoutes(apiPath)
+	routes.AuthRouter(apiPath)
+	routes.UserRouter(apiPath)
+	routes.ContactRouter(apiPath)
 	router.Run(":" + port)
 }

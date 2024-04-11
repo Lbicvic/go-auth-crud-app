@@ -5,11 +5,19 @@ import (
 	"log"
 	"os"
 
+	"github.com/Lbicvic/go-auth-crud-app/controllers"
+	"github.com/Lbicvic/go-auth-crud-app/db/repositories"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var Client *mongo.Client
+var (
+	Client            *mongo.Client
+	UserRepository    repositories.UserRepository
+	UserController    controllers.UserController
+	contactRepository repositories.ContactRepository
+	ContactController controllers.ContactController
+)
 
 func Connect() (*mongo.Collection, *mongo.Collection, context.Context) {
 	var users *mongo.Collection
@@ -24,4 +32,12 @@ func Connect() (*mongo.Collection, *mongo.Collection, context.Context) {
 	contacts = Client.Database("Phonebook").Collection("contacts")
 
 	return users, contacts, ctx
+}
+
+func Initialize() {
+	users, contacts, ctx := Connect()
+	UserRepository = *repositories.ConstructUserRepository(users, ctx)
+	UserController = controllers.ConstructUserController(UserRepository)
+	contactRepository = *repositories.ConstructContactRepository(contacts, ctx)
+	ContactController = controllers.ConstructContactController(contactRepository)
 }

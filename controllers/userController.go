@@ -107,14 +107,3 @@ func (userController *UserController) DeleteUser(context *gin.Context) {
 	}
 	context.JSON(http.StatusOK, gin.H{"message": "User successfully deleted"})
 }
-
-func (userController *UserController) UserRoutes(apiRouter *gin.RouterGroup) {
-	userRoutes := apiRouter.Group("/user")
-	{
-		userRoutes.POST("/register", userController.RegisterUser)
-		userRoutes.POST("/login", userController.LoginUser)
-		userRoutes.GET("/:id", userController.GetUser)
-		userRoutes.PATCH("/:id", userController.UpdateUser)
-		userRoutes.DELETE("/:id", userController.DeleteUser)
-	}
-}

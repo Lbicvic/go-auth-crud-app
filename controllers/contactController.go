@@ -80,14 +80,3 @@ func (contactController *ContactController) DeleteContact(context *gin.Context) 
 	}
 	context.JSON(http.StatusOK, gin.H{"message": "Contact successfully deleted"})
 }
-
-func (contactController *ContactController) ContactRoutes(apiRouter *gin.RouterGroup) {
-	contactRoutes := apiRouter.Group("/contact")
-	{
-		contactRoutes.POST("/create", contactController.CreateContact)
-		contactRoutes.GET("/:id", contactController.GetContact)
-		contactRoutes.POST("/", contactController.GetContacts)
-		contactRoutes.PATCH("/:id", contactController.UpdateContact)
-		contactRoutes.DELETE("/:id", contactController.DeleteContact)
-	}
-}

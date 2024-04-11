@@ -16,6 +16,7 @@ type IUserRepository interface {
 	CreateUser(*models.User) error
 	GetUserById(*string) (*models.User, error)
 	GetUserByEmail(*string) (*models.User, error)
+	GetUserByOib(*string) (*models.User, error)
 	UpdateUser(*models.User, *string) error
 	DeleteUser(*string) error
 }
@@ -50,6 +51,13 @@ func (userRepository *UserRepository) GetUserById(id *string) (*models.User, err
 func (userRepository *UserRepository) GetUserByEmail(email *string) (*models.User, error) {
 	var user *models.User
 	filter := bson.D{bson.E{Key: "email", Value: email}}
+	err := userRepository.users.FindOne(userRepository.context, filter).Decode(&user)
+	return user, err
+}
+
+func (userRepository *UserRepository) GetUserByOib(oib string) (*models.User, error) {
+	var user *models.User
+	filter := bson.D{bson.E{Key: "oib", Value: oib}}
 	err := userRepository.users.FindOne(userRepository.context, filter).Decode(&user)
 	return user, err
 }
