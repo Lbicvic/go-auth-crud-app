@@ -36,9 +36,12 @@ func RequireAuth(context *gin.Context) {
 		if float64(time.Now().Unix()) > claims["expire"].(float64) {
 			context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "token has expired, please log in again"})
 		}
-		_, err := db.UserRepository.GetUserByOib(claims["oib"].(string))
+		user, err := db.UserRepository.GetUserByOib(claims["oib"].(string))
 		if err != nil {
 			context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "User not authorized, please log in to proceed"})
+		}
+		if !user.IsActivated {
+			context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "User not verified, please verfy your email adress to proceed"})
 		}
 		context.Next()
 	} else {
