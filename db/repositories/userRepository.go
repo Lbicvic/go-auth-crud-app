@@ -62,13 +62,9 @@ func (userRepository *UserRepository) GetUserByOib(oib string) (*models.User, er
 	return user, err
 }
 
-func (userRepository *UserRepository) UpdateUser(user *models.User, id *string) (*models.User, error) {
+func (userRepository *UserRepository) UpdateUser(user *models.User, oib *string) (*models.User, error) {
 	var updatedUser *models.User
-	userId, err := primitive.ObjectIDFromHex(*id)
-	if err != nil {
-		log.Fatal(err)
-	}
-	currentUser, err := userRepository.GetUserById(id)
+	currentUser, err := userRepository.GetUserByOib(*oib)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -76,7 +72,7 @@ func (userRepository *UserRepository) UpdateUser(user *models.User, id *string) 
 		log.Fatal(err)
 	}
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
-	filter := bson.D{bson.E{Key: "_id", Value: userId}}
+	filter := bson.D{bson.E{Key: "oib", Value: oib}}
 	update := bson.D{bson.E{Key: "$set", Value: currentUser}}
 	err = userRepository.users.FindOneAndUpdate(userRepository.context, filter, update, opts).Decode(&updatedUser)
 	if err != nil {
@@ -85,12 +81,8 @@ func (userRepository *UserRepository) UpdateUser(user *models.User, id *string) 
 	return updatedUser, err
 }
 
-func (userRepository *UserRepository) DeleteUser(id *string) error {
-	userId, err := primitive.ObjectIDFromHex(*id)
-	if err != nil {
-		return err
-	}
-	filter := bson.D{bson.E{Key: "_id", Value: userId}}
+func (userRepository *UserRepository) DeleteUser(oib *string) error {
+	filter := bson.D{bson.E{Key: "oib", Value: oib}}
 	result, err := userRepository.users.DeleteOne(userRepository.context, filter)
 	if result.DeletedCount != 1 {
 		return err

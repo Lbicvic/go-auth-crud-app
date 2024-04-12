@@ -32,12 +32,7 @@ func (userController *UserController) RegisterUser(context *gin.Context) {
 		return
 	}
 	user.Password = string(hashPass)
-	hashActivationToken, er := bcrypt.GenerateFromPassword([]byte(uuid.New().String()), 10)
-	if er != nil {
-		context.JSON(http.StatusBadGateway, gin.H{"message": er.Error()})
-		return
-	}
-	user.ActivationToken = string(hashActivationToken)
+	user.ActivationToken = uuid.New().String()
 	user.IsActivated = false
 	err := userController.UserRepository.CreateUser(&user)
 	if err != nil {
@@ -108,13 +103,18 @@ func (userController *UserController) UpdateUser(context *gin.Context) {
 }
 
 func (userController *UserController) DeleteUser(context *gin.Context) {
-	_id := context.Param("id")
-	err := userController.UserRepository.DeleteUser(&_id)
+	oib := context.Param("oib")
+	user, err := userController.UserRepository.GetUserByOib(oib)
 	if err != nil {
 		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
 		return
 	}
-	context.JSON(http.StatusOK, gin.H{"message": "User successfully deleted"})
+	if user.IsActivated {
+		utilities.SendEmailDeleteUser(user.Oib, user.FirstName, user.LastName, user.Email, user.ActivationToken)
+		context.JSON(http.StatusOK, gin.H{"message": "Verification email has been sent for removing account"})
+	} else {
+		context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "User is not verified, please verify account to proceed"})
+	}
 }
 
 func (userController *UserController) ValidateEmailVerification(context *gin.Context) {
@@ -125,10 +125,35 @@ func (userController *UserController) ValidateEmailVerification(context *gin.Con
 		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
 		return
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(user.ActivationToken), []byte(activationToken)); err != nil {
-		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+	if activationToken != user.ActivationToken {
+		context.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "User not registered"})
 		return
 	}
 	user.IsActivated = true
+	_, er := userController.UserRepository.UpdateUser(user, &user.Oib)
+	if er != nil {
+		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+		return
+	}
 	context.JSON(http.StatusOK, gin.H{"message": "User successfully activated"})
+}
+
+func (userController *UserController) ValidateDeleteUser(context *gin.Context) {
+	oib := context.Param("oib")
+	activationToken := context.Param("activationToken")
+	user, err := userController.UserRepository.GetUserByOib(oib)
+	if err != nil {
+		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+		return
+	}
+	if user.IsActivated && user.ActivationToken == activationToken {
+		err := userController.UserRepository.DeleteUser(&user.Oib)
+		if err != nil {
+			context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+			return
+		}
+		context.JSON(http.StatusOK, gin.H{"message": "User successfully deleted"})
+	} else {
+		context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "User is not verified, please verify account to proceed"})
+	}
 }

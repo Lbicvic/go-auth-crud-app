@@ -58,3 +58,21 @@ func SendEmailVerification(oib string, firstName string, lastName string, email 
 		log.Println(response.Headers)
 	}
 }
+
+func SendEmailDeleteUser(oib string, firstName string, lastName string, email string, token string) {
+	domainPort := os.Getenv("PORT")
+	from := mail.NewEmail("No Reply", "leopold.bicvic@gmail.com")
+	subject := "Verification link for removing account"
+	to := mail.NewEmail(firstName+lastName, email)
+	htmlContent := "<h1>Click link to remove your account</h1> <a href=" + `http://localhost:` + domainPort + `/api/user/authorizeDelete/` + oib + `/` + token + ">Confirm</a>"
+	message := mail.NewSingleEmail(from, subject, to, "", htmlContent)
+	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
+	response, err := client.Send(message)
+	if err != nil {
+		log.Println(err)
+	} else {
+		log.Println(response.StatusCode)
+		log.Println(response.Body)
+		log.Println(response.Headers)
+	}
+}
