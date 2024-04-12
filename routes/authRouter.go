@@ -10,5 +10,6 @@ func AuthRouter(apiRouter *gin.RouterGroup) {
 	{
 		authRoutes.POST("/register", db.UserController.RegisterUser)
 		authRoutes.POST("/login", db.UserController.LoginUser)
+		authRoutes.GET("/activate/:oib/:activationToken", db.UserController.ValidateEmailVerification)
 	}
 }

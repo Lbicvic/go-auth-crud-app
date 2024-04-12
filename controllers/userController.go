@@ -7,6 +7,7 @@ import (
 	"github.com/Lbicvic/go-auth-crud-app/models"
 	"github.com/Lbicvic/go-auth-crud-app/utilities"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -31,6 +32,13 @@ func (userController *UserController) RegisterUser(context *gin.Context) {
 		return
 	}
 	user.Password = string(hashPass)
+	hashActivationToken, er := bcrypt.GenerateFromPassword([]byte(uuid.New().String()), 10)
+	if er != nil {
+		context.JSON(http.StatusBadGateway, gin.H{"message": er.Error()})
+		return
+	}
+	user.ActivationToken = string(hashActivationToken)
+	user.IsActivated = false
 	err := userController.UserRepository.CreateUser(&user)
 	if err != nil {
 		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
@@ -41,7 +49,8 @@ func (userController *UserController) RegisterUser(context *gin.Context) {
 		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
 		return
 	}
-	context.JSON(http.StatusOK, gin.H{"token": tokenString})
+	utilities.SendEmailVerification(user.Oib, user.FirstName, user.LastName, user.Email, user.ActivationToken)
+	context.JSON(http.StatusOK, gin.H{"token": tokenString, "activationToken": user.ActivationToken})
 }
 
 func (userController *UserController) GetUser(context *gin.Context) {
@@ -106,4 +115,20 @@ func (userController *UserController) DeleteUser(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusOK, gin.H{"message": "User successfully deleted"})
+}
+
+func (userController *UserController) ValidateEmailVerification(context *gin.Context) {
+	oib := context.Param("oib")
+	activationToken := context.Param("activationToken")
+	user, err := userController.UserRepository.GetUserByOib(oib)
+	if err != nil {
+		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+		return
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(user.ActivationToken), []byte(activationToken)); err != nil {
+		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+		return
+	}
+	user.IsActivated = true
+	context.JSON(http.StatusOK, gin.H{"message": "User successfully activated"})
 }
