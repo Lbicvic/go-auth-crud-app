@@ -23,12 +23,12 @@ func (contactController *ContactController) CreateContact(context *gin.Context) 
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
-	err := contactController.ContactRepository.CreateContact(&contact)
+	contactId, err := contactController.ContactRepository.CreateContact(&contact)
 	if err != nil {
 		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
 		return
 	}
-	context.JSON(http.StatusOK, gin.H{"message": "Contact has been created"})
+	context.JSON(http.StatusOK, gin.H{"message": "Contact has been created successfully", "id": contactId})
 }
 
 func (contactController *ContactController) GetContact(context *gin.Context) {
@@ -44,12 +44,14 @@ func (contactController *ContactController) GetContact(context *gin.Context) {
 func (contactController *ContactController) GetContacts(context *gin.Context) {
 	var reqBody struct {
 		User_oib string
+		Limit    int
+		Page     int
 	}
 	if err := context.ShouldBindJSON(&reqBody); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
-	contacts, err := contactController.ContactRepository.GetContacts(&reqBody.User_oib)
+	contacts, err := contactController.ContactRepository.GetContacts(&reqBody.User_oib, reqBody.Limit, reqBody.Page)
 	if err != nil {
 		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
 		return

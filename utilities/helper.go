@@ -42,12 +42,29 @@ func GetResponseUserData(user *models.User) *ResponseUser {
 
 func SendEmailVerification(oib string, firstName string, lastName string, email string, activationToken string) {
 	domainPort := os.Getenv("PORT")
-	from := mail.NewEmail("No Reply", "leopold.bicvic@gmail.com")
+	from := mail.NewEmail("No Reply", os.Getenv("SENDGRID_SENDER"))
 	subject := "Sign up email verification"
 	to := mail.NewEmail(firstName+lastName, email)
-	plainTextContent := "and easy to do anywhere, even with Go"
 	htmlContent := "<h1>Click link to verify your email</h1> <a href=" + `http://localhost:` + domainPort + `/api/auth/activate/` + oib + `/` + activationToken + ">Verify Email</a>"
-	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
+	message := mail.NewSingleEmail(from, subject, to, "", htmlContent)
+	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
+	response, err := client.Send(message)
+	if err != nil {
+		log.Println(err)
+	} else {
+		log.Println(response.StatusCode)
+		log.Println(response.Body)
+		log.Println(response.Headers)
+	}
+}
+
+func SendEmailPassRecovery(oib string, firstName string, lastName string, email string) {
+	domainPort := os.Getenv("PORT")
+	from := mail.NewEmail("No Reply", os.Getenv("SENDGRID_SENDER"))
+	subject := "Password Recovery"
+	to := mail.NewEmail(firstName+lastName, email)
+	htmlContent := "<h1>Click link to change your password</h1> <a href=" + `http://localhost:` + domainPort + `/api/user/forgotPass/` + oib + `/` + ">Change Password</a>"
+	message := mail.NewSingleEmail(from, subject, to, "", htmlContent)
 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
 	response, err := client.Send(message)
 	if err != nil {
@@ -61,8 +78,8 @@ func SendEmailVerification(oib string, firstName string, lastName string, email 
 
 func SendEmailDeleteUser(oib string, firstName string, lastName string, email string, token string) {
 	domainPort := os.Getenv("PORT")
-	from := mail.NewEmail("No Reply", "leopold.bicvic@gmail.com")
-	subject := "Verification link for removing account"
+	from := mail.NewEmail("No Reply", os.Getenv("SENDGRID_SENDER"))
+	subject := "Remove Account Verification"
 	to := mail.NewEmail(firstName+lastName, email)
 	htmlContent := "<h1>Click link to remove your account</h1> <a href=" + `http://localhost:` + domainPort + `/api/user/authorizeDelete/` + oib + `/` + token + ">Confirm</a>"
 	message := mail.NewSingleEmail(from, subject, to, "", htmlContent)

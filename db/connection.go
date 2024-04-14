@@ -37,7 +37,7 @@ func Connect() (*mongo.Collection, *mongo.Collection, context.Context) {
 func Initialize() {
 	users, contacts, ctx := Connect()
 	UserRepository = *repositories.ConstructUserRepository(users, ctx)
-	UserController = controllers.ConstructUserController(UserRepository)
 	contactRepository = *repositories.ConstructContactRepository(contacts, ctx)
+	UserController = controllers.ConstructUserController(UserRepository, contactRepository)
 	ContactController = controllers.ConstructContactController(contactRepository)
 }

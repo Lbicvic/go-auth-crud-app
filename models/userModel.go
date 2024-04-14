@@ -2,7 +2,7 @@ package models
 
 type User struct {
 	Username        string `bson:"username"`
-	Password        string `copier:"-" bson:"password"`
+	Password        string `bson:"password"`
 	Email           string `bson:"email"`
 	FirstName       string `bson:"firstName"`
 	LastName        string `bson:"lastName"`

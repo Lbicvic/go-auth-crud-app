@@ -11,8 +11,10 @@ func UserRouter(apiRouter *gin.RouterGroup) {
 	{
 		userRoutes.GET("/authorizeDelete/:oib/:activationToken", db.UserController.ValidateDeleteUser)
 		userRoutes.Use(middleware.RequireAuth)
-		userRoutes.GET("/:id", db.UserController.GetUser)
-		userRoutes.PATCH("/:id", db.UserController.UpdateUser)
+		userRoutes.GET("/:oib", db.UserController.GetUser)
+		userRoutes.PATCH("/:oib", db.UserController.UpdateUser)
 		userRoutes.DELETE("/:oib", db.UserController.DeleteUser)
+		userRoutes.GET("/passRecovery/:email", db.UserController.PasswordRecovery)
+		userRoutes.POST("/passRecovery/:oib/:newPass", db.UserController.ValidatePasswordRecovery)
 	}
 }

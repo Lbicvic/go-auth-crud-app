@@ -12,12 +12,14 @@ import (
 )
 
 type UserController struct {
-	UserRepository repositories.UserRepository
+	UserRepository    repositories.UserRepository
+	ContactRepositroy repositories.ContactRepository
 }
 
-func ConstructUserController(userRepository repositories.UserRepository) UserController {
+func ConstructUserController(userRepository repositories.UserRepository, contactRepository repositories.ContactRepository) UserController {
 	return UserController{
-		UserRepository: userRepository,
+		UserRepository:    userRepository,
+		ContactRepositroy: contactRepository,
 	}
 }
 func (userController *UserController) RegisterUser(context *gin.Context) {
@@ -45,12 +47,12 @@ func (userController *UserController) RegisterUser(context *gin.Context) {
 		return
 	}
 	utilities.SendEmailVerification(user.Oib, user.FirstName, user.LastName, user.Email, user.ActivationToken)
-	context.JSON(http.StatusOK, gin.H{"token": tokenString, "activationToken": user.ActivationToken})
+	context.JSON(http.StatusOK, gin.H{"token": tokenString})
 }
 
 func (userController *UserController) GetUser(context *gin.Context) {
-	_id := context.Param("id")
-	user, err := userController.UserRepository.GetUserById(&_id)
+	oib := context.Param("oib")
+	user, err := userController.UserRepository.GetUserByOib(oib)
 	if err != nil {
 		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
 		return
@@ -87,13 +89,13 @@ func (userController *UserController) LoginUser(context *gin.Context) {
 }
 
 func (userController *UserController) UpdateUser(context *gin.Context) {
-	_id := context.Param("id")
+	oib := context.Param("oib")
 	user := models.User{}
 	if err := context.ShouldBindJSON(&user); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
-	updatedUser, err := userController.UserRepository.UpdateUser(&user, &_id)
+	updatedUser, err := userController.UserRepository.UpdateUser(&user, &oib)
 	if err != nil {
 		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
 		return
@@ -147,12 +149,52 @@ func (userController *UserController) ValidateDeleteUser(context *gin.Context) {
 		return
 	}
 	if user.IsActivated && user.ActivationToken == activationToken {
+		if err := userController.ContactRepositroy.DeleteContacts(); err != nil {
+			context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+			return
+		}
 		err := userController.UserRepository.DeleteUser(&user.Oib)
 		if err != nil {
 			context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
 			return
 		}
 		context.JSON(http.StatusOK, gin.H{"message": "User successfully deleted"})
+	} else {
+		context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "User is not verified, please verify account to proceed"})
+	}
+}
+func (userController *UserController) PasswordRecovery(context *gin.Context) {
+	email := context.Param("email")
+	user, err := userController.UserRepository.GetUserByEmail(&email)
+	if err != nil {
+		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+		return
+	}
+	utilities.SendEmailPassRecovery(user.Oib, user.FirstName, user.LastName, user.Email)
+	context.JSON(http.StatusOK, gin.H{"message": "Email for password recovery has been sent"})
+}
+
+func (userController *UserController) ValidatePasswordRecovery(context *gin.Context) {
+	oib := context.Param("oib")
+	newPass := context.Param("newPass")
+	user, err := userController.UserRepository.GetUserByOib(oib)
+	if err != nil {
+		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+		return
+	}
+	if user.IsActivated {
+		hashPass, er := bcrypt.GenerateFromPassword([]byte(newPass), 10)
+		if er != nil {
+			context.JSON(http.StatusBadGateway, gin.H{"message": er.Error()})
+			return
+		}
+		user.Password = string(hashPass)
+		_, err := userController.UserRepository.UpdateUser(user, &user.Oib)
+		if err != nil {
+			context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+			return
+		}
+		context.JSON(http.StatusOK, gin.H{"message": "Password has been changed successfully"})
 	} else {
 		context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "User is not verified, please verify account to proceed"})
 	}

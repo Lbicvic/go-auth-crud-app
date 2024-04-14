@@ -31,9 +31,10 @@ func ConstructContactRepository(contacts *mongo.Collection, context context.Cont
 	}
 }
 
-func (contactRepository *ContactRepository) CreateContact(contact *models.Contact) error {
-	_, err := contactRepository.contacts.InsertOne(contactRepository.context, contact)
-	return err
+func (contactRepository *ContactRepository) CreateContact(contact *models.Contact) (string, error) {
+	contact.Id = primitive.NewObjectID()
+	result, err := contactRepository.contacts.InsertOne(contactRepository.context, contact)
+	return result.InsertedID.(primitive.ObjectID).Hex(), err
 }
 
 func (contactRepository *ContactRepository) GetContact(id *string) (*models.Contact, error) {
@@ -47,13 +48,40 @@ func (contactRepository *ContactRepository) GetContact(id *string) (*models.Cont
 	return contact, err
 }
 
-func (contactRepository *ContactRepository) GetContacts(user_oib *string) ([]*models.Contact, error) {
+type Paginate struct {
+	limit int64
+	page  int64
+}
+
+func constructPaginate(limit int, page int) *Paginate {
+	return &Paginate{
+		limit: int64(limit),
+		page:  int64(page),
+	}
+}
+func (paginate *Paginate) getPaginationOptions() *options.FindOptions {
+	limit := paginate.limit
+	skip := paginate.page*paginate.limit - paginate.limit
+	opts := options.FindOptions{Limit: &limit, Skip: &skip}
+
+	return &opts
+}
+
+func (contactRepository *ContactRepository) GetContacts(user_oib *string, limit int, page int) ([]*models.Contact, error) {
 	var contacts []*models.Contact
 	filter := bson.D{{Key: "user_oib", Value: user_oib}}
-	opts := options.Find().SetSort(bson.D{bson.E{Key: "firstName", Value: 1}})
+	opts := constructPaginate(limit, page).getPaginationOptions().SetSort(bson.D{bson.E{Key: "firstName", Value: 1}})
 	cursor, err := contactRepository.contacts.Find(contactRepository.context, filter, opts)
 	if err := cursor.All(contactRepository.context, &contacts); err != nil {
 		log.Fatal(err)
+	}
+	for cursor.Next(contactRepository.context) {
+		var contact *models.Contact
+		if err := cursor.Decode(&contact); err != nil {
+			log.Println(err)
+		}
+
+		contacts = append(contacts, contact)
 	}
 	return contacts, err
 }
@@ -88,6 +116,15 @@ func (contactRepository *ContactRepository) DeleteContact(id *string) error {
 	}
 	filter := bson.D{bson.E{Key: "_id", Value: contactId}}
 	result, err := contactRepository.contacts.DeleteOne(contactRepository.context, filter)
+	if result.DeletedCount != 1 {
+		return err
+	}
+	return nil
+}
+
+func (contactRepository *ContactRepository) DeleteContacts() error {
+	filter := bson.D{}
+	result, err := contactRepository.contacts.DeleteMany(contactRepository.context, filter)
 	if result.DeletedCount != 1 {
 		return err
 	}
