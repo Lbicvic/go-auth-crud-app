@@ -1,10 +1,12 @@
 package utilities
 
 import (
+	"errors"
 	"log"
 	"os"
 	"time"
 
+	emailverifier "github.com/AfterShip/email-verifier"
 	"github.com/Lbicvic/go-auth-crud-app/models"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jinzhu/copier"
@@ -30,6 +32,18 @@ func CreateToken(user_oib string) (string, error) {
 	tokenString, err := token.SignedString([]byte(os.Getenv("TOKEN_SECRET")))
 
 	return tokenString, err
+}
+
+func ValidateEmail(email string) error {
+	verifier := emailverifier.NewVerifier()
+	result, err := verifier.Verify(email)
+	if err != nil {
+		return err
+	}
+	if !result.Syntax.Valid {
+		return errors.New("email syntax invalid")
+	}
+	return nil
 }
 
 func GetResponseUserData(user *models.User) *ResponseUser {

@@ -28,6 +28,10 @@ func (userController *UserController) RegisterUser(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
+	if err := utilities.ValidateEmail(user.Email); err != nil {
+		context.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+		return
+	}
 	hashPass, er := bcrypt.GenerateFromPassword([]byte(user.Password), 10)
 	if er != nil {
 		context.JSON(http.StatusBadGateway, gin.H{"message": er.Error()})
